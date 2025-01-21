@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ContextProvider from "@/providers/ContextProvider";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,16 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ContextProvider>{children}</ContextProvider>
+        <footer className="bg-gray-800 text-white py-4 text-center">
+          <Link
+            href="https://www.linkedin.com/in/dev-faisal/"
+            className="text-blue-400 hover:text-blue-300 transition duration-200"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Developed by Faisal
+          </Link>
+        </footer>
       </body>
     </html>
   );
