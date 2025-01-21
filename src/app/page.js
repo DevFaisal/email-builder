@@ -8,7 +8,7 @@ import { LayoutContext } from "@/store/LayoutContext";
 
 export default function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const { FetchedLayouts } = useContext(LayoutContext);
+  const { FetchedLayouts, loading } = useContext(LayoutContext);
 
   const router = useRouter();
 
@@ -17,7 +17,13 @@ export default function Home() {
       <Navbar />
       <main className="p-8">
         <div className="max-w-7xl mx-auto">
-          {FetchedLayouts <= 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center h-screen">
+              <h1 className="text-white text-center text-2xl font-semibold">
+                Loading...
+              </h1>
+            </div>
+          ) : FetchedLayouts.length <= 0 ? (
             <div className="flex justify-center items-center h-screen">
               <h1 className="text-white text-center text-2xl font-semibold">
                 No layout found
