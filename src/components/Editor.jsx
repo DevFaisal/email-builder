@@ -1,19 +1,38 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import layouts from "@/utils/layouts";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { BsFillBackspaceFill } from "react-icons/bs";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaChevronLeft } from "react-icons/fa";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { AvatarUploader } from "./avatar-uploader";
 import axios from "axios";
+import getLayoutById from "@/actions/getLayoutById";
 
-export default function Editor({ ChosenIndex }) {
+export default function Editor({ index }) {
   const refs = useRef(null);
-  const [index, setIndex] = useState(parseInt(ChosenIndex) || 0);
+  const [edLoading, setEdLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState([]);
+  const [error, setError] = useState("");
+
+  const fetchLayout = useCallback(async () => {
+    const response = await getLayoutById({ id: index });
+    if (response.success) {
+      setResult(JSON.parse(response.data));
+      setEdLoading(false);
+      return;
+    }
+    setError(response.data);
+    setEdLoading(false);
+  }, [index]);
+
   const [template, setTemplate] = useState({
     title: "",
     content: "",
     logo: "https://img.icons8.com/?size=100&id=uZ8RFAi12S1D&format=png&color=000000",
   });
+
+  useEffect(() => {
+    fetchLayout();
+  }, [index]);
 
   useEffect(() => {
     if (refs.current) {
@@ -28,10 +47,10 @@ export default function Editor({ ChosenIndex }) {
         if (logo) logo.src = template.logo;
       }
     }
-  }, [template, index]);
+  }, [template]);
 
   async function handleSubmit() {
-    const html = layouts[index]?.html;
+    const html = result?.html;
 
     if (!html) return alert("Invalid layout selected");
 
@@ -45,16 +64,23 @@ export default function Editor({ ChosenIndex }) {
     if (content) content.textContent = template.content;
     if (logo) logo.src = template.logo;
 
+    if (template.title <= 0) {
+      return alert("Write something ...");
+    }
+    if (template.content <= 0) {
+      return alert("don't let content to be empty?");
+    }
+    setLoading(true);
     const serializer = new XMLSerializer();
     const updatedHtmlString = serializer.serializeToString(doc);
-    console.log(typeof updatedHtmlString);
+
     try {
       const res = await axios.post("/api/uploadEmailConfig", {
         data: { title: template.title, html: updatedHtmlString },
       });
 
-      const fileName = layouts[index]?.name
-        ? layouts[index].name.concat("-template.html")
+      const fileName = result?.name
+        ? result.name.concat("-template.html")
         : "template.html";
 
       const blob = new Blob([updatedHtmlString]);
@@ -66,13 +92,23 @@ export default function Editor({ ChosenIndex }) {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       alert("Something went wrong");
     }
   }
 
   async function saveAvatar(url) {
     setTemplate({ ...template, logo: url });
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <h1 className="text-2xl font-bold text-red-300">{error}</h1>
+      </div>
+    );
   }
 
   return (
@@ -85,10 +121,10 @@ export default function Editor({ ChosenIndex }) {
           >
             <FaChevronLeft size={13} /> <span>Back</span>
           </button>
-          <span>{layouts[index]?.name}</span>
+          <span>{result?.name}</span>
         </div>
-        <div className="flex justify-between p-10 pb-20 h-full">
-          <button
+        <div className="flex justify-center p-10 pb-20 h-full">
+          {/* <button
             onClick={() => {
               const newIndex = (index - 1 + layouts.length) % layouts.length;
               setIndex(newIndex);
@@ -99,16 +135,23 @@ export default function Editor({ ChosenIndex }) {
               className="text-slate-800 hover:translate-x-1 duration-300"
               size={30}
             />
-          </button>
-          <div className="flex justify-center p-10 flex-col items-center w-1/2 bg-white overflow-y-scroll rounded-md">
-            <iframe
-              ref={refs}
-              srcDoc={layouts[index]?.html}
-              title={layouts[index]?.name}
-              className="w-full h-[60vh]"
-            />
-          </div>
-          <button
+          </button> */}
+          {edLoading ? (
+            <div className="flex justify-center p-10 flex-col items-center w-1/2 bg-white overflow-y-scroll rounded-md">
+              <h1>Loading...</h1>
+            </div>
+          ) : (
+            <div className="flex justify-center p-10 flex-col items-center w-1/2 bg-white overflow-y-scroll rounded-md">
+              <iframe
+                ref={refs}
+                srcDoc={result?.html}
+                title={result?.name}
+                className="w-full h-[60vh]"
+              />
+            </div>
+          )}
+
+          {/* <button
             onClick={() => {
               const newIndex = (index + 1) % layouts.length;
               setIndex(newIndex);
@@ -119,7 +162,7 @@ export default function Editor({ ChosenIndex }) {
               className="text-slate-800 hover:-translate-x-1 duration-300"
               size={30}
             />
-          </button>
+          </button> */}
         </div>
       </section>
       <section className="bg-stone-100 w-3/12 h-full rounded-md">
@@ -147,10 +190,18 @@ export default function Editor({ ChosenIndex }) {
           </div>
           <AvatarUploader onUploadSuccess={saveAvatar} />
           <button
+            disabled={loading}
             onClick={handleSubmit}
-            className="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded"
+            className="bg-slate-500 flex justify-center hover:bg-slate-600 text-white px-4 py-2 rounded"
           >
-            Download Template
+            {loading ? (
+              <div className="flex gap-2">
+                <span>Processing</span>
+                <AiOutlineLoading3Quarters size={25} className="animate-spin" />
+              </div>
+            ) : (
+              <span>Save & Download</span>
+            )}
           </button>
         </div>
       </section>

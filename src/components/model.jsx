@@ -22,7 +22,7 @@ export default function Model({ selectedTemplate, setSelectedTemplate }) {
         />
         <button
           className="w-full p-4 text-xl font-semibold bg-green-500 duration-300 hover:bg-green-600"
-          onClick={() => router.push(`/editor/${selectedTemplate.idx}`)}
+          onClick={() => router.push(`/editor/${selectedTemplate._id}`)}
         >
           Goto
         </button>
